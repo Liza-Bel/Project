@@ -1,0 +1,4 @@
+﻿  Server.cpp
+d:\other\work\project\server\server\server.h(3): error C2059: синтаксическая ошибка: {
+d:\other\work\project\server\server\server.h(145): warning C4018: <: несоответствие типов со знаком и без знака
+d:\other\work\project\server\server\server.h(155): warning C4018: <: несоответствие типов со знаком и без знака
