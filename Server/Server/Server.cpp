@@ -76,11 +76,13 @@ void Server::Connect_Client()
 			Clients new_Client((std::string)name_client, (std::string)room_name, new_Connection);
 			clients_connected.push_back(new_Client);
 			for (int i = 0; i < rooms_server.size(); ++i) {
-				if (rooms_server[i].get_room_name == room_name) {
+				if (rooms_server[i].get_room_name() == room_name) {
 					rooms_server[i].Add_new_client(&new_Client);
 					break;
 				}
 			}
+			//Add_Client_in_the_Room(room_name, &new_Client);
+			new_Client.connectCallback(this);
 			new_Client.Parse();
 
 			delete[] name_client;
@@ -95,13 +97,19 @@ void Server::Close_Server() {
 	std::cout << "Server was stoped. You can close app" << std::endl;
 }
 
-void Server::Add_Client_in_the_Room(std::string index, Clients* cl)
+void Server::Add_Client_in_the_Room(Clients* cl)
 {
+	int room_name_size;
+	recv(cl->get_connection(), (char*)&room_name_size, sizeof(int), NULL);
+	char *room_name = new char[room_name_size + 1];
+	room_name[room_name_size] = '\0';
+	recv(cl->get_connection(), room_name, room_name_size, NULL);
+
 	for (auto &i : rooms_server) {
-		if (i.get_room_name() == index)
+		if (i.get_room_name() == room_name)
 			i.Add_new_client(cl);
 	}
-	cl->change_room(index);
+	cl->change_room(room_name);
 }
 
 void Server::Create_New_Room(std::string name)
@@ -138,6 +146,25 @@ void Server::Leave_the_Room(Clients* cl)
 
 }
 
+void Server::Send_message(Clients * cl)
+{
+	int msg_size;
+	while (true) {
+		recv(cl->get_connection(), (char*)&msg_size, sizeof(int), NULL);
+		char *msg = new char[msg_size + 1];
+		msg[msg_size] = '\0';
+		recv(cl->get_connection(), msg, msg_size, NULL);
+		for (auto i : rooms_server) {
+			if (i.get_room_name() == cl->get_room()) {
+
+			}
+		}
+		
+		delete[] msg;
+	}
+	//closesocket(cl->get_connection());
+}
+
 bool Server::Check_name(std::string user_name)
 {
 	return std::find(unique_name.begin(), unique_name.end(), user_name) == unique_name.end();
@@ -160,6 +187,7 @@ std::string Server::list_of_participants_in_the_room(Clients* cl)
 			return i.get_users();
 	}
 }
+
 
 
 int main(int argc, char* argv[]) {

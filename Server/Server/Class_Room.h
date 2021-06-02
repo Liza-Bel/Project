@@ -1,3 +1,5 @@
+#ifndef CLASS_ROOM_H
+#define CLASS_ROOM_H
 #include "Class_Client.h"
 
 class Room {
@@ -15,3 +17,4 @@ private:
 	//история комнаты
 
 };
+#endif
