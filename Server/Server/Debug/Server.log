@@ -1,2 +1,8 @@
 ﻿  Class_Client.cpp
+  Server.cpp
+d:\project\server\server\server.cpp(78): warning C4018: <: несоответствие типов со знаком и без знака
+d:\project\server\server\server.cpp(130): warning C4018: <: несоответствие типов со знаком и без знака
+d:\project\server\server\server.cpp(140): warning C4018: <: несоответствие типов со знаком и без знака
+  Создание кода...
+d:\project\server\server\server.cpp(205): warning C4715: Server::list_of_participants_in_the_room: значение возвращается не при всех путях выполнения
   Server.vcxproj -> D:\Project\Server\Debug\Server.exe

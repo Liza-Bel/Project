@@ -9,6 +9,7 @@ public:
 
 	std::string get_room_name();
 	std::string get_users();
+	std::vector<Clients*> retern_list_clients();
 	void Add_new_client(Clients* cl);
 	void Remove_from_Room(Clients* cl);
 private:

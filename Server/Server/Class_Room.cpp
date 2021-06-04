@@ -12,6 +12,11 @@ std::string Room::get_users() {
 	return names;
 }
 
+std::vector<Clients*> Room::retern_list_clients()
+{
+	return clients_in_the_room;
+}
+
 void Room::Add_new_client(Clients* cl) {
 	clients_in_the_room.push_back(cl);
 }

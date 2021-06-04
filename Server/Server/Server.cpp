@@ -83,12 +83,13 @@ void Server::Connect_Client()
 			}
 			//Add_Client_in_the_Room(room_name, &new_Client);
 			new_Client.connectCallback(this);
-			new_Client.Parse();
-
+			std::thread t; (&Clients::Parse, new_Client);
+			//t.join();
 			delete[] name_client;
 			delete[] room_name;
 		}
 	}
+
 }
 
 void Server::Close_Server() {
@@ -146,23 +147,38 @@ void Server::Leave_the_Room(Clients* cl)
 
 }
 
-void Server::Send_message(Clients * cl)
+void Server::Send_message(Clients * cl, char *msg, int msg_size)
 {
-	int msg_size;
-	while (true) {
-		recv(cl->get_connection(), (char*)&msg_size, sizeof(int), NULL);
+	//int msg_size = ;
+	//while (true) {
+		/*recv(cl->get_connection(), (char*)&msg_size, sizeof(int), NULL);
 		char *msg = new char[msg_size + 1];
 		msg[msg_size] = '\0';
-		recv(cl->get_connection(), msg, msg_size, NULL);
-		for (auto i : rooms_server) {
+		//recv(cl->get_connection(), msg, msg_size, NULL);
+		if (recv(cl->get_connection(), msg, msg_size, NULL) == SOCKET_ERROR) {
+			std::cout << "recv function failed with error " << WSAGetLastError() << std::endl;
+			return;
+		}
+		if (strcmp(msg, "exit\n") == 0) {
+			std::cout << "Client Disconnected." << std::endl;
+			break;
+		}*/
+		std::vector<Clients*> tmp = {};
+		for (auto &i : rooms_server) {
 			if (i.get_room_name() == cl->get_room()) {
-
+				tmp = i.retern_list_clients();
+				break;
 			}
 		}
-		
+
+		for (size_t i = 0; i < tmp.size(); ++i) {
+			if (cl->get_connection() == tmp[i]->get_connection())
+				continue;
+			send(tmp[i]->get_connection(), (char*)&msg_size, sizeof(int), NULL);
+			send(tmp[i]->get_connection(), msg, msg_size, NULL);
+		}
 		delete[] msg;
-	}
-	//closesocket(cl->get_connection());
+	//}
 }
 
 bool Server::Check_name(std::string user_name)
@@ -194,7 +210,6 @@ int main(int argc, char* argv[]) {
 	Server test;
 	test.Start_Server();
 	test.Connect_Client();
-
 	test.Close_Server();
 	return 0;
 }

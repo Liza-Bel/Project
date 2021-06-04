@@ -17,6 +17,7 @@ void Clients::connectCallback(CallbackInterface * cb)
 {
 	m_cb = cb;
 }
+
 void Clients::Parse()
 {
 	std::map <std::string, int> commands;
@@ -32,12 +33,23 @@ void Clients::Parse()
 	int client_command_size;
 	while (true)
 	{
-		recv(connection, (char*)&client_command_size, sizeof(int), NULL);
+		std::string msg = "parser()";
+		int msg_size = msg.size();
+		send(connection, (char*)&msg_size, sizeof(int), NULL);
+		send(connection, msg.c_str(), msg_size, NULL);
+		
+		if (recv(connection, (char*)&client_command_size, sizeof(int), NULL) == SOCKET_ERROR) {
+			std::cout << "recv function failed with error " << WSAGetLastError() << std::endl;
+			return;
+		}
 		char *client_command = new char[client_command_size + 1];
 		client_command[client_command_size] = '\0';
 		recv(connection, client_command, client_command_size, NULL);
+		if (strcmp(client_command, "exit\n") == 0) {
+			std::cout << "Client Disconnected." << std::endl;
+			break;
+		}
 		(std::string)client_command;
-		//connectCallback(s);
 		if (client_command[0] == '@') {
 			switch (commands[client_command]) {
 			case Delete: {
@@ -99,9 +111,8 @@ void Clients::Parse()
 			}
 		}
 		else {
-
+			m_cb->Send_message(this, client_command, client_command_size);
 		}
 
-		delete[] client_command;
 	}
 }

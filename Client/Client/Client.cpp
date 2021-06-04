@@ -23,11 +23,55 @@ void Client::Strart_Client()
 
 }
 
+void Client::Receiving_Messages()
+{
+	int msg_size;
+	while (true)
+	{
+		if (recv(Connection, (char*)&msg_size, sizeof(int), NULL) == SOCKET_ERROR) {
+			std::cout << "recv function failed with error: " << WSAGetLastError() << std::endl;
+			return;
+		}
+		char *msg = new char[msg_size + 1];
+		msg[msg_size] = '\0';
+		recv(Connection, msg, msg_size, NULL);
+		if (strcmp(msg, "exit\n") == 0) {
+			std::cout << "Server disconnected." << std::endl;
+			return;
+		}
+		std::cout << msg << std::endl;
+		delete[] msg;
+	}
+}
+
+void Client::Send_Message()
+{
+	std::string msg1;
+	while (true)
+	{
+		std::getline(std::cin, msg1);
+		int msg_size = msg1.size();
+		send(Connection, (char*)&msg_size, sizeof(int), NULL); 
+		if (send(Connection, msg1.c_str(), msg_size, 0) == SOCKET_ERROR) {
+			std::cout << "send failed with error: " << WSAGetLastError() << std::endl;
+			return;
+		}
+		if (strcmp(msg1.c_str(), "exit") == 0) {
+			std::cout << "Thank you for using the application" << std::endl;
+			break;
+		}
+		Sleep(10);
+	}
+}
+
 int main(int argc, char* argv[]) {
 
 	Client client;
 	client.Strart_Client();
-
+	std::thread t(&Client::Receiving_Messages, client);
+	std::thread t1(&Client::Send_Message, client);
+	t.join();
+	t1.join();
 	return 0;
 }
 

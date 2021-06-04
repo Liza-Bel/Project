@@ -7,7 +7,7 @@
 #include <iostream>
 #pragma comment(lib, "ws2_32.lib")
 #include <winsock2.h>
-
+#include <thread>
 
 enum string_code {
 	Delete,
@@ -29,6 +29,7 @@ public:
 	virtual bool Check_name(std::string user_name) = 0;
 	virtual std::string list_of_room() = 0;
 	virtual std::string list_of_participants_in_the_room(Clients* cl) = 0;
+	virtual void Send_message(Clients * cl, char *msg, int msg_size) = 0;
 };
 
 class Clients {
@@ -40,6 +41,7 @@ public:
 	void change_room(std::string names);
 	void connectCallback(CallbackInterface * cb);
 	void Parse();
+	//static DWORD WINAPI Parse(LPVOID param);
 private:
 	std::string user_name;
 	std::string room_name;
