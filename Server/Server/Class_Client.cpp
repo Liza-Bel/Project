@@ -1,5 +1,9 @@
 #include "Class_Client.h"
 #include <map>
+
+struct tm newtime;
+__time32_t aclock;
+
 std::string Clients::get_room() {
 	return room_name;
 }
@@ -29,14 +33,11 @@ void Clients::Parse()
 	commands["@history"] = History;
 	commands["@list_rooms"] = Listrooms;
 	commands["@list_clients"] = Listclients;
+	commands["@where"] = Where;
 
 	int client_command_size;
 	while (true)
 	{
-		std::string msg = "parser()";
-		int msg_size = msg.size();
-		send(connection, (char*)&msg_size, sizeof(int), NULL);
-		send(connection, msg.c_str(), msg_size, NULL);
 		
 		if (recv(connection, (char*)&client_command_size, sizeof(int), NULL) == SOCKET_ERROR) {
 			std::cout << "recv function failed with error " << WSAGetLastError() << std::endl;
@@ -49,11 +50,15 @@ void Clients::Parse()
 			std::cout << "Client Disconnected." << std::endl;
 			break;
 		}
-		(std::string)client_command;
 		if (client_command[0] == '@') {
 			switch (commands[client_command]) {
 			case Delete: {
 				m_cb->Delete_Room(this);
+			}
+			case Where: {
+				int msg_size = room_name.size();
+				send(connection, (char*)&msg_size, sizeof(int), NULL);
+				send(connection, room_name.c_str(), msg_size, NULL);
 			}
 			break;
 
@@ -62,6 +67,11 @@ void Clients::Parse()
 				int msg_size = msg.size();
 				send(connection, (char*)&msg_size, sizeof(int), NULL);
 				send(connection, msg.c_str(), msg_size, NULL);
+				std::string list_room = m_cb->list_of_room();
+				std::string s = "Rooms:" + list_room + " ";
+				int s_size = s.size();
+				send(connection, (char*)&s_size, sizeof(int), NULL);
+				send(connection, s.c_str(), s_size, NULL);
 				m_cb->Add_Client_in_the_Room(this);
 			}
 			break;
@@ -111,7 +121,13 @@ void Clients::Parse()
 			}
 		}
 		else {
-			m_cb->Send_message(this, client_command, client_command_size);
+			char buffer[32];
+			errno_t errNum;
+			_time32(&aclock);
+			_localtime32_s(&newtime, &aclock);
+			errNum = asctime_s(buffer, 32, &newtime);
+			std::string msg = (std::string)buffer + this->user_name + ":" + (std::string)client_command;
+			m_cb->Send_message(this, msg);
 		}
 
 	}

@@ -20,30 +20,41 @@ void Server::Start_Server() {
 void Server::Connect_Client()
 {
 	SOCKET new_Connection;
-	for (int i = 0; i < 100; i++) {
+	std::vector <std::thread> th_vec;
+	int count = 0;
+	int name_client_size;
+	std::string msg;
+	int msg_size;
+	char *name_client = nullptr;
+	clients_connected.reserve(50);
+	for (int i = 0; i < 50; i++) {
 		new_Connection = accept(sListen, (SOCKADDR*)&addr, &sizeofaddr);
-
+		count++;
 		if (new_Connection == 0) {
 			std::cout << "Error #2\n";
 		}
 		else {
 			std::cout << "Client Connected!\n";
-			std::string msg = "Enter your name please:\n";
-			int msg_size = msg.size();
-			send(new_Connection, (char*)&msg_size, sizeof(int), NULL);
-			send(new_Connection, msg.c_str(), msg_size, NULL);
+			while (unique_name.size() != count) {
+				msg = "Enter your name please:";
+				msg_size = msg.size();
+				send(new_Connection, (char*)&msg_size, sizeof(int), NULL);
+				send(new_Connection, msg.c_str(), msg_size, NULL);
 
-			int name_client_size;
-			recv(new_Connection, (char*)&name_client_size, sizeof(int), NULL);
-			char *name_client = new char[name_client_size + 1];
-			msg[name_client_size] = '\0';
-			recv(new_Connection, name_client, name_client_size, NULL);
-
+				int name_client_size;
+				recv(new_Connection, (char*)&name_client_size, sizeof(int), NULL);
+				name_client = new char[name_client_size + 1];
+				name_client[name_client_size] = '\0';
+				recv(new_Connection, name_client, name_client_size, NULL);
+				if (Check_name((std::string)name_client)) {
+					unique_name.push_back((std::string)name_client);
+				}
+			}
 
 			int room_name_size;
 			char *room_name = nullptr;
 			if (rooms_server.size() == 0) {
-				msg = "There are no rooms. Enter a name for the new room:\n";
+				msg = "There are no rooms. Enter a name for the new room:";
 				msg_size = msg.size();
 				send(new_Connection, (char*)&msg_size, sizeof(int), NULL);
 				send(new_Connection, msg.c_str(), msg_size, NULL);
@@ -56,12 +67,12 @@ void Server::Connect_Client()
 
 			}
 			else {
-				msg = "Select a room\n";
+				msg = "Select a room or create a new one:";
 				msg_size = msg.size();
 				send(new_Connection, (char*)&msg_size, sizeof(int), NULL);
 				send(new_Connection, msg.c_str(), msg_size, NULL);
-
-				std::string s = list_of_room();
+				std::string list_room = list_of_room();
+				std::string s = "Rooms:" + list_room + " ";
 				int s_size = s.size();
 				send(new_Connection, (char*)&s_size, sizeof(int), NULL);
 				send(new_Connection, s.c_str(), s_size, NULL);
@@ -71,23 +82,27 @@ void Server::Connect_Client()
 				room_name[room_name_size] = '\0';
 				recv(new_Connection, room_name, room_name_size, NULL);
 
-			}
+				if (list_room.find((std::string)room_name) == std::string::npos) {
+					Create_New_Room((std::string) room_name);
+				}
 
-			Clients new_Client((std::string)name_client, (std::string)room_name, new_Connection);
-			clients_connected.push_back(new_Client);
+			}
+			clients_connected.emplace_back((std::string)name_client, (std::string)room_name, new_Connection);
 			for (int i = 0; i < rooms_server.size(); ++i) {
 				if (rooms_server[i].get_room_name() == room_name) {
-					rooms_server[i].Add_new_client(&new_Client);
+					rooms_server[i].Add_new_client(&clients_connected[clients_connected.size()-1]);
 					break;
 				}
 			}
-			//Add_Client_in_the_Room(room_name, &new_Client);
-			new_Client.connectCallback(this);
-			std::thread t; (&Clients::Parse, new_Client);
-			//t.join();
+			
+			clients_connected[clients_connected.size() - 1].connectCallback(this);
+			th_vec.push_back(std::thread(&Clients::Parse, clients_connected[clients_connected.size() - 1]));
 			delete[] name_client;
 			delete[] room_name;
 		}
+	}
+	for (int i = 0; i < th_vec.size(); ++i) {
+		th_vec[i].join();
 	}
 
 }
@@ -147,22 +162,8 @@ void Server::Leave_the_Room(Clients* cl)
 
 }
 
-void Server::Send_message(Clients * cl, char *msg, int msg_size)
+void Server::Send_message(Clients * cl, std::string msg)
 {
-	//int msg_size = ;
-	//while (true) {
-		/*recv(cl->get_connection(), (char*)&msg_size, sizeof(int), NULL);
-		char *msg = new char[msg_size + 1];
-		msg[msg_size] = '\0';
-		//recv(cl->get_connection(), msg, msg_size, NULL);
-		if (recv(cl->get_connection(), msg, msg_size, NULL) == SOCKET_ERROR) {
-			std::cout << "recv function failed with error " << WSAGetLastError() << std::endl;
-			return;
-		}
-		if (strcmp(msg, "exit\n") == 0) {
-			std::cout << "Client Disconnected." << std::endl;
-			break;
-		}*/
 		std::vector<Clients*> tmp = {};
 		for (auto &i : rooms_server) {
 			if (i.get_room_name() == cl->get_room()) {
@@ -171,14 +172,19 @@ void Server::Send_message(Clients * cl, char *msg, int msg_size)
 			}
 		}
 
+		int sms_size = msg.size();
+		char *sms = new char[sms_size + 1];
+		sms[sms_size] = '\0';
+		for (int i = 0; i < msg.size(); i++)
+			sms[i] = msg[i];
+
 		for (size_t i = 0; i < tmp.size(); ++i) {
-			if (cl->get_connection() == tmp[i]->get_connection())
+			if (cl->get_user_name() == tmp[i]->get_user_name())
 				continue;
-			send(tmp[i]->get_connection(), (char*)&msg_size, sizeof(int), NULL);
-			send(tmp[i]->get_connection(), msg, msg_size, NULL);
+			int msg_size = msg.size();
+			send(tmp[i]->get_connection(), (char*)&sms_size, sizeof(int), NULL);
+			send(tmp[i]->get_connection(), sms, sms_size, NULL);
 		}
-		delete[] msg;
-	//}
 }
 
 bool Server::Check_name(std::string user_name)
@@ -203,7 +209,6 @@ std::string Server::list_of_participants_in_the_room(Clients* cl)
 			return i.get_users();
 	}
 }
-
 
 
 int main(int argc, char* argv[]) {

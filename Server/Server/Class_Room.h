@@ -15,7 +15,5 @@ public:
 private:
 	std::string name;
 	std::vector<Clients*> clients_in_the_room;
-	//история комнаты
-
 };
 #endif

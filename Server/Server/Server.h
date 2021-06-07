@@ -13,7 +13,7 @@ public:
 	void Create_New_Room(std::string name);
 	void Delete_Room(Clients* cl);
 	void Leave_the_Room(Clients* cl);
-	void Send_message(Clients * cl, char *msg, int msg_size);
+	void Send_message(Clients * cl, std::string);
 	bool Check_name(std::string user_name);
 	std::string list_of_room();
 	std::string list_of_participants_in_the_room(Clients* cl);
